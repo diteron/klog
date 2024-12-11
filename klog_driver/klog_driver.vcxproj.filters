@@ -19,7 +19,7 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <Inf Include="klog_driver.inf">
+    <Inf Include="klog_driver.inx">
       <Filter>Driver Files</Filter>
     </Inf>
   </ItemGroup>
@@ -36,6 +36,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="klog.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="public.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

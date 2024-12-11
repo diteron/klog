@@ -1,0 +1,82 @@
+;
+; klog_driver.inf
+;
+
+[Version]
+Signature       = "$WINDOWS NT$"
+Class           = Keyboard
+ClassGuid       = %ClassGUIDToFilter%
+Provider        = %ProviderName%
+CatalogFile     = klog.cat
+DriverVer       = 
+PnpLockdown     = 1
+
+[DestinationDirs]
+DefaultDestDir = 12
+
+[SourceDisksNames]
+1 = %DiskId1%,,,
+
+[SourceDisksFiles]
+klog.sys = 1
+
+; [Manufacturer]
+; %MfgName% = Standard,NT$ARCH$.10.0...16299
+
+; [Standard.NT$ARCH$.10.0...16299]
+; %klog.DeviceDesc% = klog, Root\KeyboardFilter
+
+[DefaultInstall.NT$ARCH$]
+Include     = keyboard.inf
+Needs       = STANDARD_Inst
+CopyFiles   = File_Copy
+AddReg      = klog.AddReg
+
+[File_Copy]
+klog.sys
+
+[klog.AddReg]
+;HKR,,"UpperFilters",0x00010000,"klog"
+HKLM, System\CurrentControlSet\Control\Class\%ClassGUIDToFilter%, UpperFilters, 0x00010000, %DriverName%
+HKLM, System\CurrentControlSet\Control\Class\%ClassGUIDToFilter%, UpperFilters, 0x00010008, kbdclass
+
+[DefaultInstall.NT$ARCH$.Services]
+AddService  = klog, , klog_Service_Inst
+Include     = keyboard.inf
+Needs       = STANDARD_Inst.Services
+
+[klog_Service_Inst]
+DisplayName         = %klog.SVCDESC%
+Description         = %ServiceName%
+ServiceType         = 1     ; SERVICE_KERNEL_DRIVER
+StartType           = 3     ; SERVICE_DEMAND_START
+ErrorControl        = 1     ; SERVICE_ERROR_NORMAL
+ServiceBinary       = %12%\klog.sys
+LoadOrderGroup      = Keyboard Filter
+Dependencies        = "i8042prt"
+
+;[DefaultInstall.NT$ARCH$.HW]
+;Include     = keyboard.inf
+;Needs       = STANDARD_Inst.HW
+
+[DefaultInstall.NT$ARCH$.Wdf]
+KmdfService = klog, klog_wdfsect
+
+[klog_wdfsect]
+KmdfLibraryVersion = $KMDFVERSION$
+
+[Strings]
+REG_SZ              = 0x00000000
+REG_MULTI_SZ        = 0x00010000
+REG_EXPAND_SZ       = 0x00020000
+REG_BINARY          = 0x00000001
+REG_DWORD           = 0x00010001
+
+ClassGUIDToFilter   = "{4d36e96b-e325-11ce-bfc1-08002be10318}"
+DriverName          = "klog"
+ServiceName         = "klog"
+ProviderName        = "diteron"
+MfgName             = "bsuir"
+klog.DeviceDesc     = "klog"
+klog.SVCDESC        = "klog driver"
+DiskId1             = "klog install disk"

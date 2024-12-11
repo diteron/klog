@@ -2,6 +2,9 @@
 
 #include <ntifs.h>
 
+#define NTSTRSAFE_LIB
+#include <ntstrsafe.h>
+
 #define DRIVER_NAME "KlogDriver"
 #define MAX_MSG_SIZE 256
 
