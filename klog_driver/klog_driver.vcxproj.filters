@@ -30,6 +30,9 @@
     <ClCompile Include="klog.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="raw_pdo.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="debug_print.h">

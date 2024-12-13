@@ -100,7 +100,7 @@
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>ntstrsafe.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(DDK_LIB_PATH)\wdmsec.lib;$(DDK_LIB_PATH)\ntstrsafe.lib;$(DDK_LIB_PATH)\rtlver.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -112,7 +112,7 @@
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>ntstrsafe.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(DDK_LIB_PATH)\wdmsec.lib;$(DDK_LIB_PATH)\ntstrsafe.lib;$(DDK_LIB_PATH)\rtlver.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
@@ -134,6 +134,7 @@
   <ItemGroup>
     <ClCompile Include="debug_print.c" />
     <ClCompile Include="klog.c" />
+    <ClCompile Include="raw_pdo.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="debug_print.h" />
