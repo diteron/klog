@@ -1,7 +1,7 @@
 #include "klog.h"
 #include "public.h"
 
-#define MAX_ID_LEN 128
+#define ID_MAX_LEN 128
 
 NTSTATUS Klog_CreateRawPdo(WDFDEVICE Device, ULONG InstanceNo)
 {
@@ -21,7 +21,7 @@ NTSTATUS Klog_CreateRawPdo(WDFDEVICE Device, ULONG InstanceNo)
     DECLARE_CONST_UNICODE_STRING(deviceId, KLOG_DEVICE_ID);
     DECLARE_CONST_UNICODE_STRING(hardwareId, KLOG_DEVICE_ID);
     DECLARE_CONST_UNICODE_STRING(deviceLocation, L"Keyboard Filter\0");
-    DECLARE_UNICODE_STRING_SIZE(buffer, MAX_ID_LEN);
+    DECLARE_UNICODE_STRING_SIZE(buffer, ID_MAX_LEN);
 
     deviceInit = WdfPdoInitAllocate(Device);
     if (deviceInit == NULL) {

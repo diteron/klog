@@ -18,7 +18,7 @@ DEFINE_GUID(GUID_DEVINTERFACE_KLOG,
 
 class KbInputDataProcessor {
 public:
-    KbInputDataProcessor(std::wostream& out_, bool isVerboseMode = false);
+    KbInputDataProcessor(std::wostream& out);
     KbInputDataProcessor(const KbInputDataProcessor&) = delete;
     KbInputDataProcessor& operator=(KbInputDataProcessor&) = delete;
 
@@ -33,9 +33,10 @@ private:
     bool connectToKlogDriver();
 
     void printInputData();
-    void printInputDataVerbose();
 
     DWORD getForegroundWindowThreadProcessId();
+    void printHeader();
+    void printFooter();
     void determineKeboardState(KEYBOARD_INPUT_DATA inpData);
 
     enum Key {
@@ -45,7 +46,6 @@ private:
         NumLock = 0x45
     };
 
-    bool                                isVerboseMode = false;
     bool                                isAllSetup = false;
     KEYBOARD_INPUT_DATA                 inpData[KEYBOARD_INP_BUFFER_SIZE] = {0};
     HDEVINFO                            hardwareDeviceInfo = NULL;
@@ -57,6 +57,7 @@ private:
     HANDLE                              inputDataAddedEvent = NULL;
     std::wostream&                      out;
 
+    inline static WCHAR                 processName[MAX_PATH] = {};
     DWORD                               currentThreadId;
     DWORD                               currentProcessId;
     KbMakeCodeConverter                 kbMakeCodeConverted;

@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include <sstream>
+#include <format>
 
 std::wstring KbMakeCodeConverter::convertToCharacter(UINT makeCode, HKL keyboardLayout,
                                                      bool isShiftPressed, bool isCapsLockEnabled, bool isNumLockEnabled)
@@ -23,11 +24,8 @@ std::wstring KbMakeCodeConverter::convertToCharacter(UINT makeCode, HKL keyboard
         return std::wstring(charBuffer, result);
     }
     else if (result < 0) {
-        std::wstringstream strStream;
-        strStream << std::hex
-            << L"[Dead Key - MC: 0x" << makeCode
-            << L", VK: 0x" << virtualKey << L"]";
-
+        std::wostringstream strStream;
+        strStream << std::format(L"{{Dead Key - SC {:#X}, VK {:#X}}}", makeCode, virtualKey);
         return strStream.str();
     }
     else {
@@ -60,13 +58,11 @@ std::wstring KbMakeCodeConverter::getKeyName(UINT scanCode) const
     }
 
     if (GetKeyNameTextW(scanCode << 16, keyName, KeyNameBuffSize)) {
-        return L"[" + std::wstring(keyName) + L"]";
+        return L"{" + std::wstring(keyName) + L"}";
     }
     else {
-        std::wstringstream strStream;
-        strStream << std::hex << std::uppercase
-                  << L"[Unknown Key - ScanCode: 0x" << scanCode << L"]";
-
+        std::wostringstream strStream;
+        strStream << std::format(L"{{Unknown Key - SC {:#X}}}", scanCode);
         return strStream.str();
     }
 }

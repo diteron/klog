@@ -1,10 +1,12 @@
 #include "KbInputDataProcessor.h"
 
+#include <psapi.h>
 #include <iostream>
 #include <iomanip>
+#include <format>
 
-KbInputDataProcessor::KbInputDataProcessor(std::wostream& out_, bool isVerboseMode)
-    : out{out_}, isVerboseMode{isVerboseMode}
+KbInputDataProcessor::KbInputDataProcessor(std::wostream& out)
+    : out{out}
 {
     if (!setupHardwareDeviceInfo()) {
         return;
@@ -58,29 +60,25 @@ void KbInputDataProcessor::start()
         if (waitResult == WAIT_OBJECT_0) {
             if (!DeviceIoControl(device, IOCTL_KLOG_GET_INPUT_DATA, NULL, 0,
                                  inpData, sizeof(inpData), &bytesReturned, NULL)) {
-                std::cerr << "Retrieve Keyboard Input Data request failed with status code 0x"
-                    << std::uppercase << std::hex << GetLastError() << "\n";
                 ResetEvent(inputDataAddedEvent);
+                std::cerr << std::format("DeviceIoControl with IOCTL_KLOG_GET_INPUT_DATA failed. "
+                                         "Error code {:#X}\n", GetLastError());
                 return;
             }
         }
         else {
-            std::cerr << "WaitForSingleObject failed with status code 0x"
-                << std::uppercase << std::hex << GetLastError() << "\n";
+            std::cerr << std::format("WaitForSingleObject failed. Error code {:#X}\n",
+                                     GetLastError());
             break;
         }
 
+        ResetEvent(inputDataAddedEvent);
+
         if (bytesReturned > 0) {
-            if (!isVerboseMode) {
-                printInputData();
-            }
-            else {
-                printInputDataVerbose();
-            }
+            printInputData();
         }
 
         bytesReturned = 0;
-        ResetEvent(inputDataAddedEvent);
     }
 }
 
@@ -89,8 +87,8 @@ bool KbInputDataProcessor::setupHardwareDeviceInfo()
     hardwareDeviceInfo = SetupDiGetClassDevsW((LPGUID) &GUID_DEVINTERFACE_KLOG, NULL, NULL,
                                               (DIGCF_PRESENT | DIGCF_DEVICEINTERFACE));
     if (hardwareDeviceInfo == INVALID_HANDLE_VALUE) {
-        std::cerr << "SetupDiGetClassDevs failed. Error code 0x"
-            << std::uppercase << std::hex << GetLastError() << "\n";
+        std::cerr << std::format("SetupDiGetClassDevs failed. Error code {:#X}\n",
+                                 GetLastError());
         return false;
     }
 
@@ -101,17 +99,17 @@ bool KbInputDataProcessor::findKlogDeviceInterface()
 {
     if (!SetupDiEnumDeviceInterfaces(hardwareDeviceInfo, NULL,
                                      (LPGUID) &GUID_DEVINTERFACE_KLOG, 0, &deviceInterfaceData)) {
-        std::cerr << "SetupDiEnumDeviceInterfaces failed. Error code 0x"
-            << std::uppercase << std::hex << GetLastError() << "\n";
+        std::cerr << std::format("SetupDiEnumDeviceInterfaces failed. Error code {:#X}\n",
+                                 GetLastError());
         return false;
     }
 
     if (!SetupDiGetDeviceInterfaceDetailW(hardwareDeviceInfo, &deviceInterfaceData,
                                          NULL, 0, &requiredLength, NULL)) {
         if (GetLastError() != ERROR_INSUFFICIENT_BUFFER) {
-            std::cerr << "SetupDiGetDeviceInterfaceDetail failed when retrieving "
-                << "device interface data. Error code 0x"
-                << std::uppercase << std::hex << GetLastError() << "\n";
+            std::cerr << std::format("SetupDiGetDeviceInterfaceDetail failed when retrieving "
+                                     "device interface data. Error code {:#X}\n",
+                                     GetLastError());
             return false;
         }
     }
@@ -129,9 +127,9 @@ bool KbInputDataProcessor::findKlogDeviceInterface()
     if (!SetupDiGetDeviceInterfaceDetailW(hardwareDeviceInfo, &deviceInterfaceData,
                                          deviceInterfaceDetailData,
                                          predictedLength, &requiredLength, NULL)) {
-        std::cerr << "SetupDiGetDeviceInterfaceDetail failed when retrieving "
-            << "device interface detail data. Error code 0x"
-            << std::uppercase << std::hex << GetLastError() << "\n";
+        std::cerr << std::format("SetupDiGetDeviceInterfaceDetail failed when retrieving "
+                                 "device interface detail data. Error code {:#X}\n",
+                                 GetLastError());
         return false;
     }
 
@@ -148,22 +146,22 @@ bool KbInputDataProcessor::connectToKlogDriver()
     device = CreateFileW(deviceInterfaceDetailData->DevicePath, GENERIC_READ | GENERIC_WRITE,
                         0, NULL, OPEN_EXISTING, 0, NULL);
     if (device == INVALID_HANDLE_VALUE) {
-        std::cerr << "Failed to open driver via device path. Error code 0x"
-            << std::uppercase << std::hex << GetLastError() << "\n";
+        std::cerr << std::format("Failed to open driver via device path. Error code {:#X}\n",
+                                 GetLastError());
         return false;
     }
 
     if (!DeviceIoControl(device, IOCTL_KLOG_INIT, NULL, 0,
                          &inpData, sizeof(inpData), &bytesReturned, NULL)) {
-        std::cerr << "Initialization of klog failed with status code 0x"
-            << std::uppercase << std::hex << GetLastError() << "\n";
+        std::cerr << std::format("Initialization of klog failed. Error code {:#X}\n",
+                                 GetLastError());
         return false;
     }
 
     inputDataAddedEvent = OpenEventW(EVENT_MODIFY_STATE | SYNCHRONIZE, FALSE, UM_NOTIF_EVENT_NAME);
     if (!inputDataAddedEvent) {
-        std::cerr << "Failed to open KeyboardInputDataAddedEvent. Status code 0x"
-            << std::uppercase << std::hex << GetLastError() << "\n";
+        std::cerr << std::format("Failed to open KeyboardInputDataAddedEvent. Error code {:#X}\n",
+                                 GetLastError());
         return false;
     }
 
@@ -174,20 +172,15 @@ void KbInputDataProcessor::printInputData()
 {
     DWORD processId = getForegroundWindowThreadProcessId();
     if (processId == 0) {
-        std::cerr << "Failed to retrieve process id. "
-                  << std::hex << std::uppercase<< "Error code 0x" << GetLastError() << "\n";
+        std::cerr << std::format("Failed to retrieve process id. Error code {:#X}\n",
+                                 GetLastError());
         return;
     }
     
     if (currentProcessId != processId) {
+        printFooter();
         currentProcessId = processId;
-
-        std::time_t now = std::time(nullptr);
-        std::tm local_time;
-        localtime_s(&local_time, &now);
-
-        out << L"\n[pid " << currentProcessId << L", "
-            << std::put_time(&local_time, L"%Y-%m-%d %H:%M:%S") << L"]  ";
+        printHeader();
     }
 
     HKL currentKeyboardLayout = GetKeyboardLayout(currentThreadId);
@@ -212,16 +205,58 @@ void KbInputDataProcessor::printInputData()
     }
 }
 
-void KbInputDataProcessor::printInputDataVerbose()
-{}
-
 DWORD KbInputDataProcessor::getForegroundWindowThreadProcessId()
 {
-    HWND foregroundWindow = GetForegroundWindow();
-    DWORD processId = 0;
+    HWND    foregroundWindow = GetForegroundWindow();
+    DWORD   processId = 0;
+
     currentThreadId = GetWindowThreadProcessId(foregroundWindow, &processId);
 
+    HANDLE processHandle = OpenProcess(PROCESS_ALL_ACCESS, FALSE, processId);
+    if (!processHandle) {
+        std::cerr << std::format("Failed to open process with id {}. Error code {:#X}\n",
+                                 processId, GetLastError());
+        return processId;
+    }
+
+    if (!GetModuleBaseNameW(processHandle, nullptr, processName, MAX_PATH)) {
+        std::cerr << std::format("Failed to retrieve name of process with id {}. Error code {:#X}\n",
+                                 processId, GetLastError());
+        CloseHandle(processHandle);
+        return processId;
+    }
+
+    CloseHandle(processHandle);
+
     return processId;
+}
+
+void KbInputDataProcessor::printHeader()
+{
+    std::time_t now = std::time(nullptr);
+    std::tm local_time;
+    localtime_s(&local_time, &now);
+    auto timeFormatted = std::put_time(&local_time, L"%Y-%m-%d %H:%M:%S");
+
+    out << L"\[" << processName << ", pid " << currentProcessId << L", Started "
+        << timeFormatted << L"]\n";
+}
+
+void KbInputDataProcessor::printFooter()
+{
+    static bool isFirstLine = true;
+
+    if (isFirstLine) {
+        isFirstLine = false;
+        return;
+    }
+
+    std::time_t now = std::time(nullptr);
+    std::tm local_time;
+    localtime_s(&local_time, &now);
+    auto timeFormatted = std::put_time(&local_time, L"%Y-%m-%d %H:%M:%S");
+
+    out << L"\n[" << "Ended " << timeFormatted << L"]\n\n";
 }
 
 void KbInputDataProcessor::determineKeboardState(KEYBOARD_INPUT_DATA inpData)
