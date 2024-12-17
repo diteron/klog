@@ -19,12 +19,15 @@ typedef struct DEVICE_EXTENSION_T {
 
     CONNECT_DATA UpperConnectData;
     PVOID UpperContext;
+
+    // TODO: Check if we need this
     PI8042_KEYBOARD_INITIALIZATION_ROUTINE UpperInitializationRoutine;
     PI8042_KEYBOARD_ISR UpperIsrHook;
 
     HANDLE NotifEventHandle;
 
     IN PVOID CallContext;
+    // TODO: Do we need it too?
     WDFWORKITEM workItem;
 } DEVICE_EXTENSION, *PDEVICE_EXTENSION;
 
@@ -40,14 +43,8 @@ typedef struct KEYBOARD_INPUT_BUFFER_T {
 } KEYBOARD_INPUT_BUFFER, *PKEYBOARD_INPUT_BUFFER;
 
 typedef struct RPDO_DEVICE_DATA_T {
-
     ULONG InstanceNo;
-
-    //
-    // Queue of the parent device we will forward requests to
-    //
     WDFQUEUE ParentQueue;
-
 } RPDO_DEVICE_DATA, * PRPDO_DEVICE_DATA;
 
 WDF_DECLARE_CONTEXT_TYPE_WITH_NAME(RPDO_DEVICE_DATA, PdoGetData)
@@ -69,8 +66,9 @@ NTSTATUS ReadKeyboardInputDataFromBuffer(OUT WDFMEMORY Destination, OUT size_t* 
 
 // Used to identify kbfilter bus. This guid is used as the enumeration string
 // for the device id.
+// TODO: Do we need it too ?
 DEFINE_GUID(GUID_BUS_KBFILTER,
-            0xa65c87f9, 0xbe02, 0x4ed9, 0x92, 0xec, 0x1, 0x2d, 0x41, 0x61, 0x69, 0xfa);
+            0xa65c87f9, 0xbe02, 0x4ed9, 0x92, 0xec, 0x1, 0x2d, 0x41, 0x61, 0x69, 0xfa);     // Same as in KLOG_DEVICE_ID
 // {A65C87F9-BE02-4ed9-92EC-012D416169FA}
 
 // {2BC64703-9672-4D43-9142-F444592D836C}

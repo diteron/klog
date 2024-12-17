@@ -2,7 +2,7 @@
 
 #define KEYBOARD_INP_BUFFER_SIZE 64
 
-#define KLOG_DEVICE_ID L"{A65C87F9-BE02-4ed9-92EC-012D416169FA}\\KeyboardFilter\0"
+#define KLOG_DEVICE_ID L"{A65C87F9-BE02-4ed9-92EC-012D416169FA}\\KeyboardFilter\0"  // TODO: Try to generate new and see if it works
 
 #define IOCTL_INDEX             0x800
 #define IOCTL_KLOG_GET_INPUT_DATA CTL_CODE(FILE_DEVICE_KEYBOARD,   \
