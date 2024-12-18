@@ -20,6 +20,7 @@ class KbInputDataProcessor {
 public:
     KbInputDataProcessor(std::wostream& out);
     KbInputDataProcessor(const KbInputDataProcessor&) = delete;
+
     KbInputDataProcessor& operator=(KbInputDataProcessor&) = delete;
 
     ~KbInputDataProcessor();
@@ -31,10 +32,10 @@ private:
     bool setupHardwareDeviceInfo();
     bool findKlogDeviceInterface();
     bool connectToKlogDriver();
-
-    void printInputData();
+    static BOOL consoleHandler(DWORD signal);
 
     DWORD getForegroundWindowThreadProcessId();
+    void printInputData();
     void printHeader();
     void printFooter();
     void determineKeboardState(KEYBOARD_INPUT_DATA inpData);
@@ -47,6 +48,7 @@ private:
     };
 
     bool                                isAllSetup = false;
+    static inline std::atomic_bool      isRunning = false;
     KEYBOARD_INPUT_DATA                 inpData[KEYBOARD_INP_BUFFER_SIZE] = {0};
     HDEVINFO                            hardwareDeviceInfo = NULL;
     SP_DEVICE_INTERFACE_DATA            deviceInterfaceData;
@@ -65,4 +67,3 @@ private:
     bool                                isCapsLockEnabled = false;
     bool                                isNumLockEnabled = false;
 };
-

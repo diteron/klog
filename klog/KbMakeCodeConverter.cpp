@@ -4,7 +4,7 @@
 #include <sstream>
 #include <format>
 
-std::wstring KbMakeCodeConverter::convertToCharacter(UINT makeCode, HKL keyboardLayout,
+std::wstring KbMakeCodeConverter::convertToCharacter(USHORT makeCode, HKL keyboardLayout,
                                                      bool isShiftPressed, bool isCapsLockEnabled, bool isNumLockEnabled)
 {
     static constexpr int    charBufferSize = 4;
@@ -15,7 +15,7 @@ std::wstring KbMakeCodeConverter::convertToCharacter(UINT makeCode, HKL keyboard
     keyboardState[VK_NUMLOCK]   = isNumLockEnabled ? 0x01 : 0x0;
 
     UINT virtualKey = MapVirtualKeyExW(makeCode, MAPVK_VSC_TO_VK, keyboardLayout);
-    if (isModifierKey(virtualKey)) {
+    if (isNonPrintableSymbolKey(virtualKey)) {
         return getKeyName(makeCode);
     }
 
@@ -25,7 +25,7 @@ std::wstring KbMakeCodeConverter::convertToCharacter(UINT makeCode, HKL keyboard
     }
     else if (result < 0) {
         std::wostringstream strStream;
-        strStream << std::format(L"{{Dead Key - SC {:#X}, VK {:#X}}}", makeCode, virtualKey);
+        strStream << std::format(L"{{Dead Key - SC 0x{:X}, VK 0x{:X}}}", makeCode, virtualKey);
         return strStream.str();
     }
     else {
@@ -33,8 +33,10 @@ std::wstring KbMakeCodeConverter::convertToCharacter(UINT makeCode, HKL keyboard
     }
 }
 
-bool KbMakeCodeConverter::isModifierKey(UINT virtualKey) const 
+bool KbMakeCodeConverter::isNonPrintableSymbolKey(UINT virtualKey) const 
 {
+    // This keys can be converted to symbols by ToUnicodeEx. E.g., VK_RETURN - '\r'
+    // And we shouldn't print them to a console or file as symbols
     return (virtualKey == VK_RETURN
             || virtualKey == VK_ESCAPE
             || virtualKey == VK_BACK
@@ -45,7 +47,7 @@ bool KbMakeCodeConverter::isModifierKey(UINT virtualKey) const
 bool KbMakeCodeConverter::isExtendedKey(UINT scanCode) const
 {
     return (scanCode & 0xE000) 
-            || scanCode == 0x45;    // Process 0x45 as NumLock, not Pause
+            || scanCode == 0x45;    // This is for processing 0x45 scan code as NumLock and not as Pause
 }
 
 std::wstring KbMakeCodeConverter::getKeyName(UINT scanCode) const
@@ -54,7 +56,9 @@ std::wstring KbMakeCodeConverter::getKeyName(UINT scanCode) const
     WCHAR                   keyName[KeyNameBuffSize];
 
     if (isExtendedKey(scanCode)) {
-        scanCode ^= 0xE100;
+        // Prepare a scan code for GetKeyNameTextW.
+        // So in GetKeyNameTextW, lParam bits 25-31 are 0 and bit 24 is 1 (Extended-key flag)
+        scanCode = (scanCode & 0x00FF) | 0x0100;   
     }
 
     if (GetKeyNameTextW(scanCode << 16, keyName, KeyNameBuffSize)) {
@@ -62,7 +66,7 @@ std::wstring KbMakeCodeConverter::getKeyName(UINT scanCode) const
     }
     else {
         std::wostringstream strStream;
-        strStream << std::format(L"{{Unknown Key - SC {:#X}}}", scanCode);
+        strStream << std::format(L"{{Unknown Key - SC 0x{:X}}}", scanCode);
         return strStream.str();
     }
 }

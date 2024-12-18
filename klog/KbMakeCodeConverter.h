@@ -5,11 +5,11 @@
 
 class KbMakeCodeConverter {
 public:
-    std::wstring convertToCharacter(UINT makeCode, HKL keyboardLayout,
+    std::wstring convertToCharacter(USHORT makeCode, HKL keyboardLayout,
                                     bool isShiftPressed, bool isCapsLockEnabled, bool isNumLockEnabled);
 
 private:
-    bool isModifierKey(UINT virtualKey) const;
+    bool isNonPrintableSymbolKey(UINT virtualKey) const;
     bool isExtendedKey(UINT scanCode) const;
     std::wstring getKeyName(UINT scanCode) const;
 
