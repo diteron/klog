@@ -62,7 +62,7 @@ private:
     inline static WCHAR                 processName[MAX_PATH] = {};
     DWORD                               currentThreadId;
     DWORD                               currentProcessId;
-    KbMakeCodeConverter                 kbMakeCodeConverted;
+    KbMakeCodeConverter                 kbMakeCodeConverter;
     bool                                isShiftPressed = false;
     bool                                isCapsLockEnabled = false;
     bool                                isNumLockEnabled = false;

@@ -217,12 +217,12 @@ void KbInputDataProcessor::printInputData()
         
         determineKeboardState(inpData[i]);
         if (inpData[i].Flags == KEY_MAKE) {         // Process only key press
-            out << kbMakeCodeConverted.convertToCharacter(inpData[i].MakeCode, currentKeyboardLayout,
+            out << kbMakeCodeConverter.convertToCharacter(inpData[i].MakeCode, currentKeyboardLayout,
                                                           isShiftPressed, isCapsLockEnabled, isNumLockEnabled) 
                 << L" " << std::flush;
         }
         else if (inpData[i].Flags == KEY_E0) {      // Process extended key press (0xE0XX keys)
-            out << kbMakeCodeConverted.convertToCharacter(inpData[i].MakeCode | 0xE000, currentKeyboardLayout,
+            out << kbMakeCodeConverter.convertToCharacter(inpData[i].MakeCode | 0xE000, currentKeyboardLayout,
                                                           isShiftPressed, isCapsLockEnabled, isNumLockEnabled) 
                 << L" " << std::flush;
         }
