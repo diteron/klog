@@ -11,8 +11,6 @@
 #include <initguid.h>
 #include <devguid.h>
 
-#define KBFILTER_POOL_TAG (ULONG) 'tlfK'
-
 typedef struct DEVICE_EXTENSION_T {
     WDFDEVICE       WdfDevice;
     WDFQUEUE        rawPdoQueue;
