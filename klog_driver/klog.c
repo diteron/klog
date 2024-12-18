@@ -360,7 +360,7 @@ NTSTATUS ReadKeyboardInputDataFromBuffer(OUT WDFMEMORY Destination, OUT size_t* 
         *BytesRead = bytesToRead;
     }
     else {
-        DebugPrintError("WdfMemoryCopyFromBuffer failed. Status code 0x%X\n", status)
+        DebugPrintError("WdfMemoryCopyFromBuffer failed. Status code 0x%X\n", status);
     }
 
 exit:
