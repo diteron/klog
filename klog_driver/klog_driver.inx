@@ -20,12 +20,6 @@ DefaultDestDir = 12
 [SourceDisksFiles]
 klog.sys = 1
 
-; [Manufacturer]
-; %MfgName% = Standard,NT$ARCH$.10.0...16299
-
-; [Standard.NT$ARCH$.10.0...16299]
-; %klog.DeviceDesc% = klog, Root\KeyboardFilter
-
 [DefaultInstall.NT$ARCH$]
 Include     = keyboard.inf
 Needs       = STANDARD_Inst
@@ -36,7 +30,6 @@ AddReg      = klog.AddReg
 klog.sys
 
 [klog.AddReg]
-;HKR,,"UpperFilters",0x00010000,"klog"
 HKLM, System\CurrentControlSet\Control\Class\%ClassGUIDToFilter%, UpperFilters, 0x00010000, %DriverName%
 HKLM, System\CurrentControlSet\Control\Class\%ClassGUIDToFilter%, UpperFilters, 0x00010008, kbdclass
 
@@ -53,11 +46,6 @@ StartType           = 3     ; SERVICE_DEMAND_START
 ErrorControl        = 1     ; SERVICE_ERROR_NORMAL
 ServiceBinary       = %12%\klog.sys
 LoadOrderGroup      = Keyboard Filter
-Dependencies        = "i8042prt"
-
-;[DefaultInstall.NT$ARCH$.HW]
-;Include     = keyboard.inf
-;Needs       = STANDARD_Inst.HW
 
 [DefaultInstall.NT$ARCH$.Wdf]
 KmdfService = klog, klog_wdfsect

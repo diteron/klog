@@ -164,13 +164,6 @@ VOID Klog_EvtIoInternalDeviceControl(IN WDFQUEUE Queue, IN WDFREQUEST Request,
 
             break;
 
-        case IOCTL_KEYBOARD_QUERY_INDICATOR_TRANSLATION:
-        case IOCTL_KEYBOARD_QUERY_INDICATORS:
-        case IOCTL_KEYBOARD_SET_INDICATORS:
-        case IOCTL_KEYBOARD_QUERY_TYPEMATIC:
-        case IOCTL_KEYBOARD_SET_TYPEMATIC:
-            break;
-
         default:
             break;
     }
@@ -181,10 +174,8 @@ VOID Klog_EvtIoInternalDeviceControl(IN WDFQUEUE Queue, IN WDFREQUEST Request,
         return;
     }
 
-    //
     // We are not interested in post processing the IRP so 
-    // fire and forget.
-    //
+    // send and forget.
     WDF_REQUEST_SEND_OPTIONS_INIT(&options,
                                   WDF_REQUEST_SEND_OPTION_SEND_AND_FORGET);
     isRequestSent = WdfRequestSend(Request, WdfDeviceGetIoTarget(device), &options);
