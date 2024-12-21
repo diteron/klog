@@ -201,7 +201,7 @@ void KbInputDataProcessor::printInputData()
         return;
     }
     
-    if (currentProcessId != processId) {
+    if (currentProcessId != processId) {            // If the user has changed foreground window
         printFooter();
         currentProcessId = processId;
         printHeader();
@@ -272,6 +272,8 @@ void KbInputDataProcessor::printHeader()
 
 void KbInputDataProcessor::printFooter()
 {
+    // The footer is printed before the header for each foreground window in the log,
+    // but it should not be printed before the header for the first foreground window 
     static bool isFirstLine = true;
 
     if (isFirstLine) {
