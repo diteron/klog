@@ -49,20 +49,6 @@ NTSTATUS Klog_CreateRawPdo(WDFDEVICE Device, ULONG InstanceNo)
         goto error_exit;
     }
 
-    if (!RtlIsNtDdiVersionAvailable(NTDDI_WINXP)) {
-        //
-        // On Win2K, we must provide a HWID for the device to get enumerated.
-        // Since we are providing a HWID, we will have to provide a NULL inf
-        // to avoid the "found new device" popup and get the device installed
-        // silently.
-        //
-        status = WdfPdoInitAddHardwareID(deviceInit, &hardwareId);
-        if (!NT_SUCCESS(status)) {
-            DebugPrintError("WdfPdoInitAddHardwareID failed. Status code 0x%X\n", status);
-            goto error_exit;
-        }
-    }
-
     status = RtlUnicodeStringPrintf(&buffer, L"%02d", InstanceNo);
     if (!NT_SUCCESS(status)) {
         DebugPrintError("RtlUnicodeStringPrintf failed. Status code 0x%X\n", status);
