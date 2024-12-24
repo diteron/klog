@@ -137,8 +137,8 @@ bool KbInputDataProcessor::findKlogDeviceInterface()
     }
 
     if (!SetupDiGetDeviceInterfaceDetailW(hardwareDeviceInfo, &deviceInterfaceData,
-                                         deviceInterfaceDetailData,
-                                         predictedLength, &requiredLength, NULL)) {
+                                          deviceInterfaceDetailData,
+                                          predictedLength, &requiredLength, NULL)) {
         std::wcerr << std::format(L"SetupDiGetDeviceInterfaceDetail failed when retrieving "
                                   L"device interface detail data. Error code 0x{:X}\n",
                                   GetLastError());
@@ -195,13 +195,8 @@ BOOL KbInputDataProcessor::consoleHandler(DWORD signal)
 void KbInputDataProcessor::printInputData()
 {
     DWORD processId = getForegroundWindowThreadProcessId();
-    if (processId == 0) {
-        std::wcerr << std::format(L"Failed to retrieve process id. Error code 0x{:X}\n",
-                                  GetLastError());
-        return;
-    }
     
-    if (currentProcessId != processId) {            // If the user has changed foreground window
+    if (processId != 0 && currentProcessId != processId) {            // If the user has changed foreground window
         printFooter();
         currentProcessId = processId;
         printHeader();
@@ -216,6 +211,7 @@ void KbInputDataProcessor::printInputData()
         }
         
         determineKeboardState(inpData[i]);
+
         if (inpData[i].Flags == KEY_MAKE) {         // Process only key press
             out << kbMakeCodeConverter.convertToCharacter(inpData[i].MakeCode, currentKeyboardLayout,
                                                           isShiftPressed, isCapsLockEnabled, isNumLockEnabled) 
@@ -234,17 +230,23 @@ DWORD KbInputDataProcessor::getForegroundWindowThreadProcessId()
     HWND    foregroundWindow = GetForegroundWindow();
     DWORD   processId = 0;
 
+    if (!foregroundWindow) {
+        std::wcerr << std::format(L"\nFailed to retrieve foreground window. Error code 0x{:X}\n",
+                                  processId, GetLastError());
+        return processId;
+    }
+
     currentThreadId = GetWindowThreadProcessId(foregroundWindow, &processId);
 
     HANDLE processHandle = OpenProcess(PROCESS_ALL_ACCESS, FALSE, processId);
     if (!processHandle) {
-        std::wcerr << std::format(L"Failed to open process with id {}. Error code 0x{:X}\n",
+        std::wcerr << std::format(L"\nFailed to open process with id {}. Error code 0x{:X}\n",
                                   processId, GetLastError());
         return processId;
     }
 
     if (!GetModuleBaseNameW(processHandle, nullptr, processName, MAX_PATH)) {
-        std::wcerr << std::format(L"Failed to retrieve name of process with id {}. Error code 0x{:X}\n",
+        std::wcerr << std::format(L"\nFailed to retrieve name of process with id {}. Error code 0x{:X}\n",
                                   processId, GetLastError());
         CloseHandle(processHandle);
         return processId;

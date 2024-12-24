@@ -15,6 +15,7 @@ std::wstring KbMakeCodeConverter::convertToCharacter(USHORT makeCode, HKL keyboa
     keyboardState[VK_NUMLOCK]   = isNumLockEnabled ? 0x01 : 0x0;
 
     UINT virtualKey = MapVirtualKeyExW(makeCode, MAPVK_VSC_TO_VK, keyboardLayout);
+
     if (isNonPrintableSymbolKey(virtualKey)) {
         return getKeyName(makeCode);
     }

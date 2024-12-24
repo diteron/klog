@@ -121,10 +121,8 @@ VOID Klog_EvtIoInternalDeviceControl(IN WDFQUEUE Queue, IN WDFREQUEST Request,
                 break;
             }
 
-            status = WdfRequestRetrieveInputBuffer(Request,
-                                                   sizeof(CONNECT_DATA),
-                                                   &connectData,
-                                                   &length);
+            status = WdfRequestRetrieveInputBuffer(Request, sizeof(CONNECT_DATA),
+                                                   &connectData, &length);
             if (!NT_SUCCESS(status)) {
                 DebugPrintError("WdfRequestRetrieveInputBuffer failed. Status code 0x%X\n", status);
                 break;
